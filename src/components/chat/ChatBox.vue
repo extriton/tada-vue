@@ -1,0 +1,111 @@
+<template>
+  <div class="chat-box">
+    <div v-if="!USERNAME" class="chat-box-login-wrap">
+      <ChatBoxLogin />
+    </div>
+    <div class="chat-box-area" v-if="USERNAME">
+      <div class="chat-box-list-wrap">
+        <ChatBoxList />
+      </div>
+      <p class="error-message">
+        <span v-show="!CONNECTED">Server disconnected</span>
+      </p>
+      <div v-show="CONNECTED" class="chat-box-input">
+        <a-row>
+          <a-col :span="24">
+            <a-textarea
+              placeholder="Enter message" :rows="4"
+              v-model="message"
+            />
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="2" :offset="11" class="margin-top-20">
+            <a-button @click="onSend">Send</a-button>
+          </a-col>
+        </a-row>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { mapGetters } from 'vuex'
+import ChatBoxLogin from '@/components/chat/ChatBoxLogin.vue'
+import ChatBoxList from '@/components/chat/ChatBoxList.vue'
+import config from '@/config/config'
+
+export default {
+  name: 'ChatBox',
+  components: {
+    ChatBoxLogin,
+    ChatBoxList
+  },
+  data () {
+    return {
+      ws: null,
+      message: ''
+    }
+  },
+  computed: {
+    ...mapGetters('chat', ['USERNAME', 'CONNECTED'])
+  },
+  methods: {
+    onSend () {
+      if (!this.message || !this.CONNECTED) return
+      
+      this.ws.send(JSON.stringify({ text: this.message }))
+      this.message = ''
+    }
+  },
+  watch: {
+    USERNAME (username) {
+      if (!username) return
+      
+      this.ws = new WebSocket(`${config.domainWS}/ws?name=${username}`)
+
+      this.ws.onopen = () => {
+        this.$store.commit('chat/SET_CONNECTED', true)
+      }
+
+      this.ws.onclose = () => {
+        this.$store.commit('chat/SET_CONNECTED', false)
+      }
+
+      this.ws.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        this.$store.commit('chat/ADD_MESSAGE', data)
+      }
+
+    }
+  }
+}
+</script>
+
+<style lang="scss">
+.chat-box {
+  height: 100%;
+  background-color: #419FD9;
+  border-radius: 15px;
+  padding: 20px;
+  .chat-box-login-wrap {
+    margin-top: 200px;
+  }
+  .chat-box-area {
+    width: 600px;
+    height: 100%;
+  }
+  .chat-box-list-wrap {
+    height: calc(100% - 200px);
+  }
+  .chat-box-input {
+    margin-top: 10px;
+  }
+  .error-message {
+    color: red;
+    min-height: 16px;
+    font-size: 16px;
+    margin: 10px 0;
+  }
+}
+</style>

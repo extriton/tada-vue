@@ -1,29 +1,11 @@
 # tada-vue
 
-## Project setup
+## Запуск на локальной машине
 ```
-npm install
-```
+1. Склонировать проект с GitHub: git clone https://github.com/extriton/tada-vue tada-vue
+2. Перейти в папку tada-vue: cd tada-vue
+3. Установить необходимые для проекта модули: npm install
+4. Запустить сервер: npm run serve
 
-### Compiles and hot-reloads for development
+Проект будет доступен по адресу localhost:8080
 ```
-npm run serve
-```
-
-### Compiles and minifies for production
-```
-npm run build
-```
-
-### Run your tests
-```
-npm run test
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
