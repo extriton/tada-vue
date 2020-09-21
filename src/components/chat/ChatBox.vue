@@ -3,28 +3,32 @@
     <div v-if="!USERNAME" class="chat-box-login-wrap">
       <ChatBoxLogin />
     </div>
-    <div class="chat-box-area" v-if="USERNAME">
+    <div v-if="USERNAME" class="chat-box-area">
       <div class="chat-box-list-wrap">
         <ChatBoxList />
       </div>
       <p class="error-message">
-        <span v-show="!CONNECTED">Server disconnected</span>
+        <span v-show="!CONNECTED">{{ error }}</span>
       </p>
-      <div v-show="CONNECTED" class="chat-box-input">
-        <a-row>
-          <a-col :span="24">
-            <a-textarea
-              placeholder="Enter message" :rows="4"
-              v-model="message"
-            />
-          </a-col>
-        </a-row>
-        <a-row>
-          <a-col :span="2" :offset="11" class="margin-top-20">
-            <a-button @click="onSend">Send</a-button>
-          </a-col>
-        </a-row>
-      </div>
+      <a-row>
+        <a-col :span="24">
+          <a-textarea
+            placeholder="Enter message" :rows="4"
+            v-model="message"
+            :disabled="!CONNECTED"
+          />
+        </a-col>
+      </a-row>
+      <a-row>
+        <a-col :span="2" :offset="11" class="margin-top-20">
+          <a-button
+            @click="onSend"
+            :disabled="!CONNECTED"
+          >
+            Send
+          </a-button>
+        </a-col>
+      </a-row>
     </div>
   </div>
 </template>
@@ -44,7 +48,9 @@ export default {
   data () {
     return {
       ws: null,
-      message: ''
+      message: '',
+      error: '',
+      intervalId: null
     }
   },
   computed: {
@@ -56,27 +62,42 @@ export default {
       
       this.ws.send(JSON.stringify({ text: this.message }))
       this.message = ''
-    }
-  },
-  watch: {
-    USERNAME (username) {
-      if (!username) return
-      
+    },
+    connect (username) {
       this.ws = new WebSocket(`${config.domainWS}/ws?name=${username}`)
 
       this.ws.onopen = () => {
+        this.error = ''
         this.$store.commit('chat/SET_CONNECTED', true)
+        if (this.intervalId !== null) {
+          clearInterval(this.intervalId)
+          this.intervalId = null
+        }
       }
 
       this.ws.onclose = () => {
+        this.error = 'Connection lost'
         this.$store.commit('chat/SET_CONNECTED', false)
+        this.ws = null
+        if (this.intervalId === null) {
+          this.intervalId = setInterval(() => { this.connect(username) }, 5000)
+        }
       }
 
       this.ws.onmessage = (event) => {
         const data = JSON.parse(event.data)
         this.$store.commit('chat/ADD_MESSAGE', data)
       }
-
+    }
+  },
+  watch: {
+    USERNAME (username) {
+      if (username) this.connect(username)
+    }
+  },
+  beforeDestroy () {
+    if (this.intervalId !== null) {
+      clearInterval(this.intervalId)
     }
   }
 }
@@ -106,6 +127,7 @@ export default {
     min-height: 16px;
     font-size: 16px;
     margin: 10px 0;
+    font-size: 12px;
   }
 }
 </style>
